@@ -509,9 +509,10 @@ h1.hero-h{font-size:var(--fs-display); line-height:.95; letter-spacing:-.038em; 
 .ph4{background-image:linear-gradient(160deg,#1A1B1E,#0A0A0C)}
 .ph5{background-image:radial-gradient(50% 90% at 12% 50%,rgba(227,6,19,.20),transparent 60%),linear-gradient(90deg,#0C0C0E,#1B1C1F 62%,#0A0A0C)}
 /* ilustração dentro do tile — sai sozinha quando você põe a foto real */
-.tile .art{position:absolute; inset:0; margin:auto; width:min(74%,300px); height:auto; z-index:1;
+.tile .art{position:absolute; left:50%; top:50%; width:min(74%,300px); height:auto; z-index:1;
+  transform:translate(-50%,-50%); transform-origin:center;
   filter:drop-shadow(0 14px 34px rgba(0,0,0,.7)); transition:transform .6s var(--ease-out)}
-.tile:hover .art{transform:scale(1.045)}
+.tile:hover .art{transform:translate(-50%,-50%) scale(1.045)}
 .tile .media::after{content:""; position:absolute; inset:0;
   background:repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 1px,transparent 1px 9px)}
 .tile img.media{object-fit:cover; height:100%; width:100%}
@@ -581,10 +582,15 @@ h1.hero-h{font-size:var(--fs-display); line-height:.95; letter-spacing:-.038em; 
   .hdr .btn{display:none}
   .burger{display:flex}
   .hero{min-height:auto; padding-top:calc(var(--header-h) + 48px); padding-bottom:88px}
-  .hero-inner{grid-template-columns:1fr; gap:var(--s8)}
-  /* mobile: o tacômetro vem DEPOIS do texto e reduzido — não é o desktop encolhido */
-  .hero-visual{order:2}
-  .hero-copy{order:1}
+  /* mobile: o mostrador sobe e fica logo acima do CTA, não no fim da dobra */
+  .hero-inner{grid-template-columns:1fr; gap:0}
+  .hero-copy{display:contents}
+  .eyebrow{order:1}
+  h1.hero-h{order:2}
+  .hero-sub{order:3}
+  .hero-visual{order:4; margin-block:var(--s7) var(--s6)}
+  .hero-cta{order:5; margin-top:0}
+  .hero-meta{order:6}
   .tach{max-width:min(310px,70vw)}
   .tach-cap{display:none}
   .shead p{font-size:1rem}
@@ -629,7 +635,7 @@ h1.hero-h{font-size:var(--fs-display); line-height:.95; letter-spacing:-.038em; 
   .gal{display:flex; flex-direction:column; gap:var(--s3)}
   .t1,.t2,.t3,.t4,.t5{grid-column:auto; grid-row:auto; aspect-ratio:16/10; width:100%}
   .tile figcaption{left:12px; bottom:10px; font-size:.76rem}
-  .tile .art{width:min(56%,220px)}
+  .tile .art{width:min(62%,240px)}
 
   .ft-grid{grid-template-columns:1fr; gap:var(--s6)}
   .btn-lg{width:100%; height:56px; padding-inline:18px; font-size:1rem}
@@ -1324,26 +1330,24 @@ h1.hero-h{font-size:var(--fs-display); line-height:.95; letter-spacing:-.038em; 
     if(!track || !lines.length) return;
     var r = track.getBoundingClientRect(), total = r.height - window.innerHeight;
     if(total <= 0) return;
-    var p = (-r.top) / total;
-    if(p < -0.08 || p > 1.08){
-      if(lastIdx !== -1){ lines.forEach(function(l){ l.style.opacity = 0; }); lastIdx = -1; }
-      return;
-    }
-    p = Math.max(0, Math.min(1, p));
-    var n = lines.length;
+    // fora da tela: não gasta trabalho, mas também não apaga nada
+    if(r.bottom < 0 || r.top > window.innerHeight) return;
+
+    // grampeado em 0..1: a primeira frase já está inteira na tela desde que a
+    // seção entra, e a última continua inteira até ela sair.
+    var p = Math.max(0, Math.min(1, (-r.top) / total));
+    var n = lines.length, span = n - 1;
 
     for(var i=0; i<n; i++){
-      // distância da frase até o ponto de leitura, em "frases"
-      var d = p*n - (i + 0.5);
-      var ad = Math.abs(d);
-      // janela de 0.9 frase: enquanto uma sai, a seguinte já está entrando
+      // âncoras em i/(n-1): a frase 1 vive em p=0 e a última em p=1
+      var d = p*span - i, ad = Math.abs(d);
       var o = ad >= 0.9 ? 0 : 1 - Math.pow(ad/0.9, 1.7);
-      var el2 = lines[i];
-      el2.style.opacity = o.toFixed(3);
-      el2.style.transform = "translate3d(0," + (-50 - d*22).toFixed(1) + "%,0) scale(" + (1 - ad*0.05).toFixed(3) + ")";
-      el2.style.filter = ad > 0.25 ? "blur(" + Math.min(7, (ad-0.25)*9).toFixed(1) + "px)" : "none";
+      var e2 = lines[i];
+      e2.style.opacity = o.toFixed(3);
+      e2.style.transform = "translate3d(0," + (-50 - d*22).toFixed(1) + "%,0) scale(" + (1 - ad*0.05).toFixed(3) + ")";
+      e2.style.filter = ad > 0.25 ? "blur(" + Math.min(7, (ad-0.25)*9).toFixed(1) + "px)" : "none";
     }
-    var idx = Math.min(n-1, Math.floor(p*n));
+    var idx = Math.round(p*span);
     if(idx !== lastIdx){ bars.forEach(function(b2,j){ b2.classList.toggle("on", j===idx); }); lastIdx = idx; }
     if(sweep) sweep.style.width = (p*100).toFixed(1) + "%";
     if(stage) stage.style.setProperty("--glow", (Math.sin(p*Math.PI)*0.9).toFixed(3));
